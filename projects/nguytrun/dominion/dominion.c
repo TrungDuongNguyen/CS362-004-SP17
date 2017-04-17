@@ -638,9 +638,162 @@ int getCost(int cardNumber)
       return 4;
     case treasure_map:
       return 4;
+	case market:
+	  return 5;
+	case bandit:
+	  return 5;
     }
 	
   return -1;
+}
+// Assignment 2, using similar variables to cardEffect Function
+
+int pAdventure(struct gameState *state, int currentPlayer){
+	int temphand[MAX_HAND];
+	int drawntreasure = 0;
+	int cardDrawn;
+	int z = 0;
+	
+	while (drawntreasure<2) {
+		if (state->deckCount[currentPlayer] <1){//if the deck is empty we need to shuffle discard and add to deck
+	  shuffle(currentPlayer, state);
+		}
+		drawCard(currentPlayer, state);
+		cardDrawn = state->hand[currentPlayer][state->handCount[currentPlayer]-1];//top card of hand is most recently drawn card.
+		if (cardDrawn == copper || cardDrawn == silver || cardDrawn == gold)
+		  drawntreasure++;
+		else{
+		  temphand[z]=cardDrawn;
+		  state->handCount[currentPlayer]--; //this should just remove the top card (the most recently drawn one).
+		  z++;
+		}
+	}
+}
+
+int pSmithy(struct gameState *state, int currentPlayer, int handPos){
+	int i;
+	for (i = 0; i < 4; i++){
+		drawCard(currentPlayer, state);
+	}
+    //discard card from hand
+    discardCard(handPos, currentPlayer, state, 0);
+	return 0;
+}
+
+int pBaron(struct gameState *state, int currentPlayer, int choice1)
+{
+	state->numBuys++;//Increase buys by 1!
+    if (choice1 > 0){//Boolean true or going to discard an estate
+	int p = 0;//Iterator for hand!
+	int card_not_discarded = 1;//Flag for discard set!
+	while(card_not_discarded){
+	  if (state->hand[currentPlayer][p] == estate){//Found an estate card!
+	    state->coins += 4;//Add 4 coins to the amount of coins
+	    state->discard[currentPlayer][state->discardCount[currentPlayer]] = state->hand[currentPlayer][p];
+	    state->discardCount[currentPlayer]++;
+	    for (;p < state->handCount[currentPlayer]; p++){
+	      state->hand[currentPlayer][p] = state->hand[currentPlayer][p+1];
+	    }
+	    state->hand[currentPlayer][state->handCount[currentPlayer]] = -1;
+	    state->handCount[currentPlayer]--;
+	    card_not_discarded = 0;//Exit the loop
+	  }
+	  else if (p > state->handCount[currentPlayer]){
+	    if(DEBUG) {
+	      printf("No estate cards in your hand, invalid choice\n");
+	      printf("Must gain an estate if there are any\n");
+	    }
+	    if (supplyCount(estate, state) > 0){
+	      gainCard(estate, state, 0, currentPlayer);
+	      state->supplyCount[estate]--;//Decrement estates
+	      if (supplyCount(estate, state) == 0){
+		isGameOver(state);
+	      }
+	    }
+	    card_not_discarded = 0;//Exit the loop
+	  }
+			    
+	  else{
+	    p++;//Next card
+	  }
+	}
+      }
+			    
+      else{
+	if (supplyCount(estate, state) > 0){
+	  gainCard(estate, state, 0, currentPlayer);//Gain an estate
+	  state->supplyCount[estate]--;//Decrement Estates
+	  if (supplyCount(estate, state) == 0){
+	    isGameOver(state);
+	  }
+	}
+      }
+	    
+      
+      return 0;
+}
+
+int pMarket(struct gameState *state, int currentPlayer) // draws a card, increases number of buys, increases number of actions, and increases coin by 1
+{
+	drawCard(currentPlayer, state);
+	state->numBuys++;
+	state->numActions = state->numActions + 1;
+	state->coins = state->coins + 1;
+	
+	return 0;
+	
+}
+
+int pBandit(struct gameState *state, int currentPlayer)
+{
+	int i;
+	int cardDrawn1;
+	int cardDrawn2;
+	int treasuretoTrash;
+
+	for (i = 0; i < state->numPlayers; i++)
+	{
+		if ( i != currentPlayer )
+		{
+			drawCard(i, state);
+			cardDrawn1 = state->hand[i][state->handCount[i]-1];
+			if (cardDrawn1 == silver || cardDrawn1 == gold){
+				treasuretoTrash = cardDrawn1;
+			}
+			drawCard(i, state);
+			cardDrawn2 = state->hand[i][state->handCount[i]-1];
+			if (cardDrawn2 == silver || cardDrawn2 == gold){
+				if (treasuretoTrash == gold && cardDrawn2 == silver) {
+					discardCard(i-1, i, state, 1); //if second card is a treasure and is a silver with first being gold, trash second card
+					discardCard(i-2, i, state, 0);
+				}
+				else if (treasuretoTrash == silver && cardDrawn2 == gold) {
+					discardCard(i-2, i, state, 1);//if second card is gold and first card is silver, trash first card
+					discardCard(i-1, i, state, 0);
+				}
+				else 
+				{
+					discardCard(i-1, i, state, 1);//if second card is silver or gold, but first card isnt anything, trash it
+					discardCard(i-2, i, state, 0);
+				}
+		
+			}
+			else if(treasuretoTrash == cardDrawn1) //if second card isnt silver or gold but first one is a silver or gold, trash it
+			{
+				discardCard(i-2,i,state,1); 
+				discardCard(i-1,i,state,0);
+				treasuretoTrash = 0;
+			}
+			else //if none are treasures, discard both
+			{
+				discardCard(i-2,i,state,0); 
+				discardCard(i-1,i,state,0);
+			}
+	    
+		}
+	}
+	return 0;
+
 }
 
 int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState *state, int handPos, int *bonus)
@@ -667,6 +820,9 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
   switch( card ) 
     {
     case adventurer:
+		pAdventure(state, currentPlayer);
+		return 0;
+	/*
       while(drawntreasure<2){
 	if (state->deckCount[currentPlayer] <1){//if the deck is empty we need to shuffle discard and add to deck
 	  shuffle(currentPlayer, state);
@@ -687,6 +843,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       }
       return 0;
 			
+	*/
     case council_room:
       //+4 Cards
       for (i = 0; i < 4; i++)
@@ -829,6 +986,10 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case smithy:
+		pSmithy(state,currentPlayer,handPos);
+		return 0;
+	
+	/*
       //+3 Cards
       for (i = 0; i < 3; i++)
 	{
@@ -838,6 +999,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       //discard card from hand
       discardCard(handPos, currentPlayer, state, 0);
       return 0;
+	 */
 		
     case village:
       //+1 Card
@@ -851,6 +1013,9 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case baron:
+		pBaron (state, currentPlayer, choice1);
+		return 0;
+	/*
       state->numBuys++;//Increase buys by 1!
       if (choice1 > 0){//Boolean true or going to discard an estate
 	int p = 0;//Iterator for hand!
@@ -900,7 +1065,15 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
 	    
       
       return 0;
+	*/
+	case market:
+		pMarket (state,currentPlayer);
+		return 0;
 		
+	case bandit:
+		pBandit (state, currentPlayer);
+		return 0;
+	
     case great_hall:
       //+1 Card
       drawCard(currentPlayer, state);
