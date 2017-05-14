@@ -672,7 +672,7 @@ int pAdventure(struct gameState *state, int currentPlayer){
 
 int pSmithy(struct gameState *state, int currentPlayer, int handPos){
 	int i;
-	for (i = 0; i < 4; i++){
+	for (i = 0; i < 3; i++){
 		drawCard(currentPlayer, state);
 	}
     //discard card from hand
@@ -742,6 +742,16 @@ int pMarket(struct gameState *state, int currentPlayer) // draws a card, increas
 	
 	return 0;
 	
+}
+
+int pVillage(struct gameState *state, int currentPlayer, int handPos) // draws a card, increases number of buys, increases number of actions, and increases coin by 1
+{
+	drawCard(currentPlayer, state);
+
+	state->numActions = state->numActions + 2;
+    discardCard(handPos, currentPlayer, state, 0);
+	
+	return 0;
 }
 
 int pBandit(struct gameState *state, int currentPlayer)
