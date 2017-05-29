@@ -1,0 +1,11 @@
+Smithy Deck count not decreased by 3 but by 1;
+	
+Handcount was not increased and stayed constant when smithy was played
+
+No bugs in Greathall Test
+No bugs in Village Test
+No bugs in Adventure Test
+
+All unit tests successful
+All randomtests successful
+
